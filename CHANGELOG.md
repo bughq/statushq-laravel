@@ -3,6 +3,20 @@
 All notable changes to `statushq/laravel-sdk` are documented here. This project
 follows [semantic versioning](https://semver.org).
 
+## v0.1.1 — 2026-08-18
+
+### Fixed
+
+- **Support Laravel 13.** v0.1.0 capped at `illuminate/* ^12.0` and was therefore
+  uninstallable in a current `laravel/laravel` app, which ships 13.x. No code
+  changed; the suite passes unmodified on 13.26.
+
+  The test matrix could not have caught this — it only ever resolves versions
+  the package's own constraints already allow, so every job was green against
+  Laravel 12 while the package was uninstallable. CI now also installs into a
+  freshly created `laravel/laravel` app and boots the service provider, which
+  fails the moment the constraints go stale again.
+
 ## v0.1.0 — 2026-08-18
 
 First release.

@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3', '8.4']
+        php: ['8.2', '8.3', '8.4', '8.5']
         dependencies: [highest, lowest]
 
     name: PHP ${{ matrix.php }} — ${{ matrix.dependencies }} deps
@@ -37,3 +37,36 @@ jobs:
 
       - name: Run tests
         run: vendor/bin/phpunit
+
+  # The matrix above can only ever resolve versions this package's own
+  # constraints already allow, so it cannot notice the constraints going stale:
+  # v0.1.0 capped at illuminate ^12 and was uninstallable the day Laravel 13
+  # shipped, with every job green. This installs into a real, current
+  # `laravel/laravel` and fails when that stops working.
+  install:
+    runs-on: ubuntu-latest
+    name: Install into a current Laravel app
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: package
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Create a Laravel app
+        run: composer create-project laravel/laravel app --no-interaction --quiet
+
+      - name: Install this package from the checkout
+        working-directory: app
+        run: |
+          composer config repositories.package '{"type":"path","url":"../package","options":{"symlink":false}}'
+          composer require statushq/laravel-sdk:* --no-interaction
+
+      - name: The service provider boots and registers its command
+        working-directory: app
+        run: php artisan statushq:report --dry
