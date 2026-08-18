@@ -58,7 +58,7 @@ STATUSHQ_METRICS_SCHEDULE=false
 
 ## Health: an endpoint StatusHQ polls
 
-Enabled by default at `/statushq-health-check-results`. Protect it:
+Set a secret, and the endpoint appears at `/statushq-health-check-results`:
 
 ```dotenv
 STATUSHQ_HEALTH_SECRET=some-long-random-string
@@ -68,6 +68,19 @@ Then add a **health monitor** in StatusHQ pointing at that URL, with the same
 string in **Health endpoint secret**. The secret travels in the
 `oh-dear-health-check-secret` header, and a request without it gets a 403 with
 no body — the check names alone describe your internals.
+
+**Without a secret the route is never registered**, and the URL 404s like any
+other unknown path. Installing a package should not be enough to publish an
+unauthenticated description of your application — which queues it runs, which
+services it depends on, how full its disk is — and a 404 does not even reveal
+that this package is installed.
+
+If the endpoint genuinely isn't reachable from outside, or the caller can't
+send a header (a Kubernetes liveness probe, say), say so explicitly:
+
+```dotenv
+STATUSHQ_HEALTH_ALLOW_UNAUTHENTICATED=true
+```
 
 The endpoint always returns **200**, even when checks fail. The status code
 answers "did the endpoint work"; the body answers "is the app healthy".
@@ -182,7 +195,8 @@ php artisan vendor:publish --tag=statushq-config
 | `STATUSHQ_DISK_PATH` | `/` | Mount point to measure |
 | `STATUSHQ_HEALTH_ENABLED` | `true` | |
 | `STATUSHQ_HEALTH_PATH` | `statushq-health-check-results` | |
-| `STATUSHQ_HEALTH_SECRET` | `OH_DEAR_HEALTH_CHECK_SECRET` | Falls back to Oh Dear's variable |
+| `STATUSHQ_HEALTH_SECRET` | `OH_DEAR_HEALTH_CHECK_SECRET` | Falls back to Oh Dear's variable. **No secret, no route.** |
+| `STATUSHQ_HEALTH_ALLOW_UNAUTHENTICATED` | `false` | Serve with no secret — private networks only |
 
 Thresholds live in `config/statushq.php` — at or above `warn` is degraded, at
 or above `fail` is down.

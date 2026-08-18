@@ -92,6 +92,17 @@ final class StatusHqServiceProvider extends ServiceProvider
             return;
         }
 
+        // Fail closed. `composer require` must not be enough to publish an
+        // unauthenticated description of the application's internals: without
+        // a secret the route is never registered, so the URL 404s like any
+        // other unknown path rather than advertising that this is installed.
+        $secret = config('statushq.health.secret');
+        $unauthenticated = (bool) config('statushq.health.allow_unauthenticated', false);
+
+        if (! $unauthenticated && (! is_string($secret) || $secret === '')) {
+            return;
+        }
+
         $path = (string) config('statushq.health.path', 'statushq-health-check-results');
 
         Route::get($path, HealthController::class)

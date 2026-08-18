@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace StatusHq\Tests\Laravel;
 
+use Illuminate\Testing\TestResponse;
 use StatusHq\Health\Check;
 use StatusHq\Health\CheckResult;
 use StatusHq\Laravel\HealthRegistry;
@@ -12,11 +13,28 @@ use StatusHq\Tests\TestCase;
 
 final class HealthEndpointTest extends TestCase
 {
+    private const SECRET = 'the-real-secret';
+
+    protected function defineEnvironment($app): void
+    {
+        // The endpoint is only registered when a secret exists, so every test
+        // that expects to reach it has to configure one.
+        $app['config']->set('statushq.health.secret', self::SECRET);
+    }
+
+    private function health(?string $secret = self::SECRET): TestResponse
+    {
+        return $this->getJson(
+            'statushq-health-check-results',
+            $secret === null ? [] : [HealthController::SECRET_HEADER => $secret],
+        );
+    }
+
     public function test_it_serves_the_schema_the_consumer_parses(): void
     {
         $this->fakeHost($this->containerFiles());
 
-        $response = $this->getJson('statushq-health-check-results');
+        $response = $this->health();
 
         $response->assertOk();
         $response->assertJsonStructure([
@@ -34,7 +52,7 @@ final class HealthEndpointTest extends TestCase
     {
         $this->fakeHost($this->containerFiles(usedMb: 256, limitMb: 1024));
 
-        $response = $this->getJson('statushq-health-check-results');
+        $response = $this->health();
 
         $this->assertSame(['CpuUsage', 'UsedMemory', 'UsedDiskSpace'], $response->json('checkResults.*.name'));
         $this->assertSame('ok', $response->json('checkResults.1.status'));
@@ -46,29 +64,19 @@ final class HealthEndpointTest extends TestCase
         // The check names describe the application's internals — which queues
         // it runs, which services it talks to. That is not for anonymous
         // callers, so the body is withheld rather than merely unauthenticated.
-        config()->set('statushq.health.secret', 'the-real-secret');
         $this->fakeHost($this->containerFiles());
 
-        $response = $this->getJson('statushq-health-check-results', [HealthController::SECRET_HEADER => 'guess']);
+        $response = $this->health('guess');
 
         $response->assertForbidden();
         $response->assertJsonMissingPath('checkResults');
     }
 
-    public function test_the_right_secret_is_let_through(): void
+    public function test_a_missing_secret_header_is_rejected(): void
     {
-        config()->set('statushq.health.secret', 'the-real-secret');
         $this->fakeHost($this->containerFiles());
 
-        $this->getJson('statushq-health-check-results', [HealthController::SECRET_HEADER => 'the-real-secret'])
-            ->assertOk();
-    }
-
-    public function test_a_missing_secret_header_is_rejected_when_one_is_configured(): void
-    {
-        config()->set('statushq.health.secret', 'the-real-secret');
-
-        $this->getJson('statushq-health-check-results')->assertForbidden();
+        $this->health(null)->assertForbidden();
     }
 
     public function test_a_failing_check_still_returns_two_hundred(): void
@@ -78,7 +86,7 @@ final class HealthEndpointTest extends TestCase
         // server being down, which loses the detail the endpoint carries.
         $this->fakeHost($this->containerFiles(usedMb: 1000, limitMb: 1024));
 
-        $response = $this->getJson('statushq-health-check-results');
+        $response = $this->health();
 
         $response->assertOk();
         $this->assertSame('failed', $response->json('checkResults.1.status'));
@@ -90,7 +98,7 @@ final class HealthEndpointTest extends TestCase
         // look" is not evidence of ill health.
         $this->fakeHost([]);
 
-        $response = $this->getJson('statushq-health-check-results');
+        $response = $this->health();
 
         $response->assertOk();
         $this->assertSame('skipped', $response->json('checkResults.1.status'));
@@ -120,9 +128,8 @@ final class HealthEndpointTest extends TestCase
             },
         ]);
 
-        $response = $this->getJson('statushq-health-check-results');
+        $response = $this->health();
 
         $this->assertSame(['Database'], $response->json('checkResults.*.name'));
     }
-
 }

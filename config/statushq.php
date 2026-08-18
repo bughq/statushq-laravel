@@ -75,10 +75,23 @@ return [
 
         /*
          * Presented by the caller in the `oh-dear-health-check-secret` header.
-         * Leave null to serve the report unauthenticated — reasonable only on
-         * an endpoint that is not publicly routable.
+         *
+         * Without one the route is not registered at all, so the URL 404s like
+         * any other unknown path. Installing a package must not put an
+         * unauthenticated description of your application's internals on the
+         * public internet as a side effect.
          */
         'secret' => env('STATUSHQ_HEALTH_SECRET', env('OH_DEAR_HEALTH_CHECK_SECRET')),
+
+        /*
+         * The escape hatch: serve the endpoint with no secret at all.
+         *
+         * Reasonable behind a private network or as a Kubernetes liveness
+         * probe, where the endpoint is not reachable from outside and the
+         * prober cannot send a header. Anywhere else it publishes your check
+         * names, disk usage and memory totals to whoever asks.
+         */
+        'allow_unauthenticated' => env('STATUSHQ_HEALTH_ALLOW_UNAUTHENTICATED', false),
 
         'middleware' => [],
 
