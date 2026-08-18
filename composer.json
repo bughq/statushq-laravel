@@ -1,0 +1,52 @@
+{
+    "name": "statushq/laravel",
+    "description": "Report application and host health to StatusHQ from a Laravel app.",
+    "keywords": [
+        "statushq",
+        "laravel",
+        "monitoring",
+        "health",
+        "uptime",
+        "metrics"
+    ],
+    "homepage": "https://github.com/bughq/statushq-laravel",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "illuminate/console": "^10.0|^11.0|^12.0",
+        "illuminate/support": "^10.0|^11.0|^12.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^8.0|^9.0|^10.0",
+        "phpunit/phpunit": "^10.5|^11.0",
+        "spatie/laravel-health": "^1.40"
+    },
+    "suggest": {
+        "spatie/laravel-health": "Forward checks you have already registered with spatie/laravel-health instead of re-declaring them"
+    },
+    "autoload": {
+        "psr-4": {
+            "StatusHq\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "StatusHq\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "StatusHq\\Laravel\\StatusHqServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "scripts": {
+        "test": "phpunit"
+    }
+}
