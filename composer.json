@@ -1,5 +1,5 @@
 {
-    "name": "statushq/laravel",
+    "name": "statushq/laravel-sdk",
     "description": "Report application and host health to StatusHQ from a Laravel app.",
     "keywords": [
         "statushq",

@@ -4,7 +4,7 @@ Report your application's health and your server's CPU, memory and disk to
 [StatusHQ](https://statushq.org), from Laravel.
 
 ```bash
-composer require statushq/laravel
+composer require statushq/laravel-sdk
 ```
 
 There are two directions, and most installs want both:
