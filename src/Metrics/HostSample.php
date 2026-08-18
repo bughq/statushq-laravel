@@ -14,7 +14,55 @@ final class HostSample
         public readonly ?MemoryUsage $memory,
         public readonly ?DiskUsage $disk,
         public readonly string $host,
+        /** Whether this host exposes CPU counters at all — see CpuReader::isSupported(). */
+        public readonly bool $cpuMeasurable = true,
     ) {
+    }
+
+    /**
+     * Why this sample cannot be sent, or null when it can.
+     *
+     * Named precisely, because the two silences need different reactions: a
+     * first run resolves itself a minute later, while a host with no readable
+     * counters never will, and a caller told to "wait for the next sample"
+     * would wait forever.
+     */
+    public function whyNotReportable(): ?string
+    {
+        if ($this->cpuPercent === null) {
+            return $this->cpuMeasurable
+                ? 'nothing to report yet: CPU usage is a rate, so it needs a previous sample to compare against'
+                : 'this host exposes no CPU counters (/proc/stat and the cgroup files are Linux-only), so metrics cannot be pushed from it';
+        }
+
+        if ($this->memory === null) {
+            return 'this host exposes no readable memory interface (cgroup or /proc/meminfo), so metrics cannot be pushed from it';
+        }
+
+        return null;
+    }
+
+    /**
+     * Rows for display, with unmeasured values shown as unmeasured.
+     *
+     * Not the ingest payload: that coerces nulls to 0 because the endpoint
+     * requires numbers, and printing those zeroes to a human reads as "your
+     * machine is idle" rather than "this was never measured".
+     *
+     * @return list<array{0: string, 1: string}>
+     */
+    public function toDisplayRows(): array
+    {
+        $show = static fn (?float $value, string $unit = ''): string => $value === null ? '—' : $value.$unit;
+
+        return [
+            ['cpu', $show($this->cpuPercent, '%')],
+            ['memory', $show($this->memory?->percent(), '%')],
+            ['memory used', $this->memory === null ? '—' : $this->memory->usedMegabytes().' MB of '.$this->memory->totalMegabytes().' MB'],
+            ['memory source', $this->memory?->source ?? '—'],
+            ['disk', $show($this->disk?->percent(), '%')],
+            ['host', $this->host],
+        ];
     }
 
     /**

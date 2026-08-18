@@ -46,6 +46,19 @@ final class CpuReader
             ?? $this->fromProcStat();
     }
 
+    /**
+     * Whether this host exposes CPU counters at all.
+     *
+     * The distinction the caller needs: "no reading yet" is transient and
+     * resolves on the next run, while "nothing to read" is permanent and never
+     * will. Telling a macOS developer to wait for the next sample sends them
+     * away to wait for something that cannot happen.
+     */
+    public function isSupported(): bool
+    {
+        return $this->snapshot() !== null;
+    }
+
     private function fromCgroupV2(): ?CpuSnapshot
     {
         $usageMicros = self::parseStatValue((string) $this->files->read(self::CGROUP_V2_STAT), 'usage_usec');

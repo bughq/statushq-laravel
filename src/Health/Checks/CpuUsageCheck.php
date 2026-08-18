@@ -39,10 +39,16 @@ final class CpuUsageCheck extends ThresholdCheck
 
     public function run(): CheckResult
     {
+        $percent = $this->cpu->percent();
+
         return $this->evaluate(
-            $this->cpu->percent(),
+            $percent,
             'cpu_used_percentage',
-            'no previous sample to compare against yet — usage is a rate, so the first run cannot report one',
+            // Two different silences, and telling them apart is the whole
+            // point: one resolves on the next run, the other never will.
+            $percent === null && ! $this->cpu->isSupported()
+                ? 'no CPU counters on this host — /proc/stat and the cgroup files are Linux-only, so this will not resolve on a later run'
+                : 'no previous sample to compare against yet — usage is a rate, so the first run cannot report one',
         );
     }
 }

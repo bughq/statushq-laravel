@@ -20,10 +20,10 @@ final class ReportMetricsCommand extends Command
     {
         $sample = $collector->collect(blocking: (bool) $this->option('blocking'));
 
-        $this->table(
-            ['metric', 'value'],
-            collect($sample->toIngestPayload())->map(fn ($value, $key): array => [$key, (string) $value])->values()->all(),
-        );
+        // Display rows, not the ingest payload: that coerces unmeasured values
+        // to 0 because the endpoint requires numbers, and printing those to a
+        // human reads as "your machine is idle" rather than "never measured".
+        $this->table(['metric', 'value'], $sample->toDisplayRows());
 
         if ($this->option('dry')) {
             return self::SUCCESS;
@@ -43,7 +43,12 @@ final class ReportMetricsCommand extends Command
             // difference against, and a red scheduled task every deploy is
             // how people learn to ignore red scheduled tasks.
             if (! $sample->isReportable()) {
-                $this->components->info($outcome['reason']);
+                // A host that can never report is worth a warning — it is
+                // running a minutely task that cannot succeed — but still not
+                // a failure exit, which would paint the schedule red forever.
+                $sample->cpuMeasurable
+                    ? $this->components->info($outcome['reason'])
+                    : $this->components->warn($outcome['reason']);
 
                 return self::SUCCESS;
             }

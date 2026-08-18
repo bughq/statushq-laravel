@@ -38,7 +38,9 @@ final class Reporter
     public function report(HostSample $sample): array
     {
         if (! $sample->isReportable()) {
-            return ['sent' => false, 'reason' => 'nothing to report yet: CPU usage needs a previous sample to compare against'];
+            // The sample says why: a first run resolves itself next minute,
+            // a host with no readable counters never will.
+            return ['sent' => false, 'reason' => $sample->whyNotReportable() ?? 'nothing to report yet'];
         }
 
         try {

@@ -30,11 +30,14 @@ final class Collector
      */
     public function collect(bool $blocking = false, int $blockingMilliseconds = 1000): HostSample
     {
+        $cpuMeasurable = $this->cpu->isSupported();
+
         return new HostSample(
             $blocking ? $this->cpu->percentByBlockingSample($blockingMilliseconds) : $this->cpu->percent(),
             $this->memory->read(),
             $this->disk->read($this->diskPath),
             $this->host ?? self::defaultHost(),
+            $cpuMeasurable,
         );
     }
 

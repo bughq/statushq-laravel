@@ -61,6 +61,12 @@ final class CpuSampler
         return $previous === null ? null : self::percentBetween($previous, $current, $this->maxAgeSeconds);
     }
 
+    /** Whether this host exposes CPU counters at all — see CpuReader::isSupported(). */
+    public function isSupported(): bool
+    {
+        return $this->reader->isSupported();
+    }
+
     /**
      * Take both readings here and now, sleeping between them.
      *

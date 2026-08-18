@@ -3,6 +3,21 @@
 All notable changes to `statushq/laravel-sdk` are documented here. This project
 follows [semantic versioning](https://semver.org).
 
+## v0.1.2 — 2026-08-18
+
+### Fixed
+
+- **Say which silence it is.** A host with no `/proc` and no cgroup — macOS,
+  Windows — cannot report CPU at all, but was told "the first run cannot report
+  one", which invites waiting for a second run that says exactly the same thing.
+  The health check and `statushq:report` now distinguish a transient first
+  sample from a host that will never have counters, and the command warns rather
+  than reporting success quietly in the permanent case.
+- **`statushq:report` printed zeroes for values it never measured.** The table
+  was built from the ingest payload, which coerces nulls to `0` because the
+  endpoint requires numbers — so an unmeasurable host read as a completely idle
+  one. Unmeasured values now show as `—`, alongside the memory source.
+
 ## v0.1.1 — 2026-08-18
 
 ### Fixed

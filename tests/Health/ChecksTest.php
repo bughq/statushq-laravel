@@ -141,4 +141,18 @@ final class ChecksTest extends TestCase
         $this->assertSame(CheckResult::STATUS_FAILED, $second->status);
         $this->assertSame(95.0, $second->meta['cpu_used_percentage']);
     }
+
+    public function test_cpu_says_which_silence_it_is(): void
+    {
+        // A host with no /proc and no cgroup cannot ever report CPU. Telling
+        // its owner "the first run cannot report one" sends them off to wait
+        // for a second run that will say exactly the same thing.
+        $unmeasurable = new CpuUsageCheck(new CpuSampler(new CpuReader(new ArrayFileReader(), new FakeClock()), new ArrayStateStore()));
+
+        $result = $unmeasurable->run();
+
+        $this->assertSame(CheckResult::STATUS_SKIPPED, $result->status);
+        $this->assertStringContainsString('no CPU counters', $result->notificationMessage);
+        $this->assertStringContainsString('will not resolve on a later run', $result->notificationMessage);
+    }
 }
