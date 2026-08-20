@@ -65,7 +65,14 @@ jobs:
         working-directory: app
         run: |
           composer config repositories.package '{"type":"path","url":"../package","options":{"symlink":false}}'
-          composer require statushq/laravel-sdk:* --no-interaction
+          # A path repo resolves to dev-main, which a stable-only app refuses --
+          # and because the path repo is canonical, composer will not quietly
+          # fall back to the published release instead. Without both lines the
+          # job fails on its own harness rather than on the package, which is
+          # how this check sat red while proving nothing.
+          composer config minimum-stability dev
+          composer config prefer-stable true
+          composer require statushq/laravel-sdk:@dev --no-interaction
 
       - name: The service provider boots and registers its command
         working-directory: app
